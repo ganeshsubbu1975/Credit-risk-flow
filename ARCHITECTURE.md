@@ -44,7 +44,7 @@ flowchart LR
 
     subgraph MODELS["AI models (5 chat roles + 1 embedding)"]
         direction TB
-        Chat["Chat model, one per role:<br/>Extraction · Compliance · Risk<br/>ScopeCheck · QaAnswer<br/>Current config (OnPrem): Phi-4-mini-instruct<br/>via Foundry Local"]
+        Chat["Chat model, one per role:<br/>Extraction · Compliance · Risk<br/>ScopeCheck · QaAnswer<br/>Current config (OnPrem): Phi-4-mini-instruct<br/>via Foundry Local (:5273)<br/>Prerequisite: server running AND model loaded<br/>(foundry model load phi-4-mini)"]
         Emb["Embedding model<br/>Current config: Stub (keyword, 1024 dims)<br/>Real: nomic-embed-text-v1.5 (768) / qwen3-embedding-0.6b"]
         AzM["Azure mode: Azure OpenAI deployments<br/>Entra ID auth, 1536 dims"]
     end
@@ -109,7 +109,9 @@ expects `Authorization: Bearer` (and `?access_token=` for `/hubs`). CORS allows 
 | `QaAnswer` | QaService | Answer from retrieved excerpts only, with citations | same |
 | Embedding | IngestStep, QaService | Embed chunks and questions for vector search | `EmbeddingProvider: Stub`, 1024 dims (Dev) |
 
-Endpoint: Foundry Local `http://localhost:5273/v1` (OpenAI-compatible, no auth). Azure mode swaps in Azure OpenAI
+Endpoint: Foundry Local `http://localhost:5273/v1` (OpenAI-compatible, no auth). OnPrem mode needs the Foundry server
+running (otherwise "connection refused") and the model loaded into memory with `foundry model load phi-4-mini`
+(otherwise `400 Model not loaded`); Foundry unloads idle models, so reload if that error returns. Azure mode swaps in Azure OpenAI
 deployments with Entra ID. `document_chunks.embedding` is `VECTOR(EmbeddingDimensions)`; change dimensions only with a re-ingest.
 The scorecard (`Scoring`) and the decision model (`Decisioning`, policy `DM-1.0.0`: approve < 30, deny > 70, min confidence 0.80)
 are deterministic code, not LLMs.
@@ -204,7 +206,7 @@ sequenceDiagram
     API->>V: top-K 20 for this case, max cosine distance 0.85
     V-->>API: chunks (none within gate → NotFound)
     API->>L: QaAnswer from excerpts only → answer + citations
-    API->>API: citations must map to excerpts; GroundingGuard checks every figure
+    API->>API: citations must map to excerpts, GroundingGuard checks every figure
     API->>V: qa_log + audit_event written
     API-->>UI: answer + citations, or refused + reason
 ```

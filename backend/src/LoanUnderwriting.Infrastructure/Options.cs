@@ -68,6 +68,8 @@ public sealed class SelfCheckOptions
 {
     public bool Enabled { get; set; } = true;
     public bool ProbeModels { get; set; } = true;
+    /// <summary>Development only: lets Azure mode start on a SQL Server without the VECTOR type (JSON fallback).</summary>
+    public bool AllowVectorFallback { get; set; } = false;
 }
 
 /// <summary>Result of the startup probe: whether the database really uses the native VECTOR type.</summary>

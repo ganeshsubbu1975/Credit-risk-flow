@@ -78,7 +78,7 @@ public sealed class BlobDocumentStore : IDocumentStore
 
     public BlobDocumentStore(string accountUrl, string container)
     {
-        _container = new BlobServiceClient(new Uri(accountUrl), new DefaultAzureCredential()).GetBlobContainerClient(container);
+        _container = new BlobServiceClient(new Uri(accountUrl), AzureCredentials.Create()).GetBlobContainerClient(container);
     }
 
     public async Task<DocumentRef> SaveAsync(Stream content, string fileName, CancellationToken ct = default)

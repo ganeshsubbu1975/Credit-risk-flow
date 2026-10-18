@@ -26,7 +26,7 @@ public sealed class OpenAiCompatibleClient : ILlmClient, IEmbeddingClient
         _log = log;
         _http.BaseAddress = new Uri(profile.BaseUrl.TrimEnd('/') + "/");
         _http.Timeout = TimeSpan.FromSeconds(profile.TimeoutSeconds);
-        if (profile.AuthMode.Equals("AzureAd", StringComparison.OrdinalIgnoreCase)) _credential = new DefaultAzureCredential();
+        if (profile.AuthMode.Equals("AzureAd", StringComparison.OrdinalIgnoreCase)) _credential = AzureCredentials.Create();
     }
 
     public int Dimensions => _p.EmbeddingDimensions;

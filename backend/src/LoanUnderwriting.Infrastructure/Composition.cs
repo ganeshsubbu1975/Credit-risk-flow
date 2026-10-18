@@ -101,7 +101,7 @@ public sealed class SelfCheck(DeploymentOptions deployment, DatabaseOptions db, 
             Add("Database", true, "Connected.");
             // The schema step already probed the server. Report the effective mode; the JSON fallback is development only.
             if (vector.UseNative) Add("Vector support", true, "Native VECTOR type available.");
-            else Add("Vector support", deployment.Mode != DeploymentMode.Azure, "JSON fallback in use (development only): " + vector.Reason);
+            else Add("Vector support", deployment.Mode != DeploymentMode.Azure || options.AllowVectorFallback,"JSON fallback in use (development only): " + vector.Reason);
         }
         catch (Exception e) { Add("Database", false, e.Message); }
 
