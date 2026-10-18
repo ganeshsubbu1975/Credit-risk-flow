@@ -17,7 +17,7 @@ public sealed class SqlDb(DatabaseOptions options)
 }
 
 /// <summary>Creates the database (if allowed) and the tables. Idempotent, safe to run at every start.</summary>
-public sealed class SchemaInitializer(DatabaseOptions options, int embeddingDimensions, ILogger<SchemaInitializer> log)
+public sealed class SchemaInitializer(DatabaseOptions options, int embeddingDimensions, VectorRuntime vector, ILogger<SchemaInitializer> log)
 {
     public async Task EnsureAsync(CancellationToken ct = default)
     {
@@ -36,15 +36,58 @@ public sealed class SchemaInitializer(DatabaseOptions options, int embeddingDime
 
         await using var conn = new SqlConnection(options.ConnectionString);
         await conn.OpenAsync(ct);
-        var embeddingType = options.VectorProvider.Equals("Native", StringComparison.OrdinalIgnoreCase)
-            ? $"VECTOR({embeddingDimensions})" : "NVARCHAR(MAX)";
+        await DecideVectorModeAsync(conn, ct);
+        var embeddingType = vector.UseNative ? $"VECTOR({embeddingDimensions})" : "NVARCHAR(MAX)";
         foreach (var statement in Script(embeddingType))
         {
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = statement;
             await cmd.ExecuteNonQueryAsync(ct);
         }
-        log.LogInformation("Database schema ready (vector provider {Provider}, {Dim} dimensions).", options.VectorProvider, embeddingDimensions);
+        log.LogInformation("Database schema ready (vectors: {Mode}, {Dim} dimensions).", vector.UseNative ? "native VECTOR" : "JSON fallback", embeddingDimensions);
+    }
+
+    /// <summary>Probes the server for the VECTOR type before any table is created, so the failure is clear and nothing is half-created.</summary>
+    private async Task DecideVectorModeAsync(SqlConnection conn, CancellationToken ct)
+    {
+        var provider = options.VectorProvider;
+        if (provider.Equals("JsonFallback", StringComparison.OrdinalIgnoreCase))
+        {
+            vector.UseNative = false;
+            vector.Reason = "Database:VectorProvider is JsonFallback.";
+            log.LogWarning("Vector search uses the JSON fallback (development only): embeddings are stored as JSON and compared in the application.");
+            return;
+        }
+
+        var supported = true;
+        var version = "";
+        try
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT CAST('[0.1,0.2]' AS VECTOR(2))";
+            await cmd.ExecuteScalarAsync(ct);
+        }
+        catch (SqlException)
+        {
+            supported = false;
+            await using var v = conn.CreateCommand();
+            v.CommandText = "SELECT CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(50)) + ' ' + CAST(SERVERPROPERTY('Edition') AS NVARCHAR(100))";
+            version = (await v.ExecuteScalarAsync(ct))?.ToString() ?? "unknown";
+        }
+
+        if (supported) { vector.UseNative = true; vector.Reason = "Server supports the VECTOR type."; return; }
+
+        if (provider.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+        {
+            vector.UseNative = false;
+            vector.Reason = $"SQL Server {version} has no VECTOR type; using the JSON fallback.";
+            log.LogWarning("SQL Server {Version} does not support the VECTOR type. Falling back to JSON embeddings (development only). Use SQL Server 2025 or Azure SQL for production.", version);
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"The SQL Server at this connection ({version}) does not support the VECTOR data type, which needs SQL Server 2025 or Azure SQL. " +
+            "Fix: point Database:ConnectionString at a SQL Server 2025 instance, or for development only set Database:VectorProvider to \"Auto\" or \"JsonFallback\".");
     }
 
     private static IEnumerable<string> Script(string embeddingType)

@@ -151,3 +151,13 @@ public sealed class JsonVectorStore(SqlDb db) : IVectorStore
         return (int)(await c.ExecuteScalarAsync(ct))!;
     }
 }
+
+/// <summary>Chooses the native or JSON store after the startup probe has decided which the database supports.</summary>
+public sealed class AdaptiveVectorStore(SqlDb db, int dimensions, VectorRuntime runtime) : IVectorStore
+{
+    private IVectorStore Inner => runtime.UseNative ? new NativeVectorStore(db, dimensions) : new JsonVectorStore(db);
+    public Task ReplaceAsync(Guid caseId, IReadOnlyList<ChunkEmbedding> chunks, CancellationToken ct = default) => Inner.ReplaceAsync(caseId, chunks, ct);
+    public Task<IReadOnlyList<ScoredChunk>> SearchAsync(Guid caseId, float[] query, int k, CancellationToken ct = default) => Inner.SearchAsync(caseId, query, k, ct);
+    public Task DeleteCaseAsync(Guid caseId, CancellationToken ct = default) => Inner.DeleteCaseAsync(caseId, ct);
+    public Task<int> CountAsync(Guid caseId, CancellationToken ct = default) => Inner.CountAsync(caseId, ct);
+}

@@ -108,7 +108,7 @@ All settings can be overridden with environment variables using `__` as the sepa
 |---|---|---|
 | `Deployment:Mode` | `OnPrem` or `Azure`; picks the model profile | `OnPrem` |
 | `Database:ConnectionString` | SQL Server 2025 / Azure SQL | placeholder, must be set |
-| `Database:VectorProvider` | `Native` (VECTOR type) or `JsonFallback` (older SQL Server, development only) | `Native` |
+| `Database:VectorProvider` | `Native` (VECTOR type; startup stops with a clear message if the server lacks it), `Auto` (native when supported, otherwise the JSON fallback with a warning) or `JsonFallback` (older SQL Server). `Auto` and `JsonFallback` are for development only. Development settings use `Auto` | `Native` |
 | `Database:AutoCreateSchema` | create database and tables at start | `true` |
 | `Storage:DocumentFolder` | where uploaded PDFs are kept. Relative paths resolve against the application folder; **use an absolute path in production**, on an encrypted, access-restricted volume | `data/documents` |
 | `Storage:MaxUploadMb` | upload limit | `20` |
@@ -152,7 +152,8 @@ before real use.
 ## 7. Troubleshooting
 | Symptom | Likely cause and fix |
 |---|---|
-| Startup stops with "Startup self-check failed" | Read the listed checks. Common: database not reachable, **SQL Server older than 2025** (vector type missing; use SQL Server 2025 or, for development only, `Database:VectorProvider=JsonFallback`), model endpoint unreachable, mixed mode settings |
+| Startup stops with "does not support the VECTOR data type" (or SQL error "Cannot find data type VECTOR" in older builds) | The connection points at SQL Server 2022 or older. Point `Database:ConnectionString` at a SQL Server 2025 instance (on this machine: `localhost\MSSQLSERVER01`), or for development only set `Database:VectorProvider` to `Auto` |
+| Startup stops with "Startup self-check failed" | Read the listed checks. Common: database not reachable, model endpoint unreachable, mixed mode settings |
 | `Cannot open database` or permission error at first start | The login needs the right to create the database, or create it first and set `AutoCreateSchema` to `false` after the schema exists |
 | "Embedding model returned N dimensions but M are configured" | Set `EmbeddingDimensions` to N before the first start (or recreate the `document_chunks` table) |
 | 403 on an endpoint | Role check. Upload needs `RiskOps`, review needs `Underwriter` and not the submitter, Q&A needs `RiskOps` or `Underwriter` |

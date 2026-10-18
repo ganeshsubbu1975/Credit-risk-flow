@@ -10,7 +10,11 @@ public sealed class DeploymentOptions
 public sealed class DatabaseOptions
 {
     public string ConnectionString { get; set; } = "";
-    /// <summary>Native = SQL Server 2025 / Azure SQL VECTOR type. JsonFallback = embeddings as JSON, cosine in C# (older SQL Server, dev only).</summary>
+    /// <summary>
+    /// Native = SQL Server 2025 / Azure SQL VECTOR type; startup fails with a clear message if the server lacks it (use in production).
+    /// Auto = Native when the server supports it, otherwise the JSON fallback with a warning (development convenience).
+    /// JsonFallback = embeddings stored as JSON, cosine computed in C# (older SQL Server, development only).
+    /// </summary>
     public string VectorProvider { get; set; } = "Native";
     public bool AutoCreateSchema { get; set; } = true;
 }
@@ -56,4 +60,11 @@ public sealed class SelfCheckOptions
 {
     public bool Enabled { get; set; } = true;
     public bool ProbeModels { get; set; } = true;
+}
+
+/// <summary>Result of the startup probe: whether the database really uses the native VECTOR type.</summary>
+public sealed class VectorRuntime
+{
+    public bool UseNative { get; set; } = true;
+    public string Reason { get; set; } = "";
 }

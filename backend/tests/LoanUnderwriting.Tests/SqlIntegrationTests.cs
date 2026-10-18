@@ -30,7 +30,7 @@ public sealed class SqlFixture : IAsyncLifetime
         if (string.IsNullOrWhiteSpace(baseConn)) return;
         Conn = new SqlConnectionStringBuilder(baseConn) { InitialCatalog = _db }.ConnectionString;
         var opts = new DatabaseOptions { ConnectionString = Conn, VectorProvider = "Native" };
-        await new SchemaInitializer(opts, Dim, NullLogger<SchemaInitializer>.Instance).EnsureAsync();
+        await new SchemaInitializer(opts, Dim, new VectorRuntime(), NullLogger<SchemaInitializer>.Instance).EnsureAsync();
         Db = new SqlDb(opts);
     }
 

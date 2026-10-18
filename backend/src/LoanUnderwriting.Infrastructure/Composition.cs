@@ -33,11 +33,9 @@ public static class Composition
         services.AddSingleton<ICaseRepository, SqlCaseRepository>();
         services.AddSingleton<IPdfReader, PdfPigReader>();
         services.AddSingleton<IDocumentStore>(_ => new FileDocumentStore(storage.ResolvedFolder));
-        services.AddSingleton(sp => new SchemaInitializer(db, profile.EmbeddingDimensions, sp.GetRequiredService<ILogger<SchemaInitializer>>()));
-        if (db.VectorProvider.Equals("Native", StringComparison.OrdinalIgnoreCase))
-            services.AddSingleton<IVectorStore>(sp => new NativeVectorStore(sp.GetRequiredService<SqlDb>(), profile.EmbeddingDimensions));
-        else
-            services.AddSingleton<IVectorStore, JsonVectorStore>();
+        services.AddSingleton(new VectorRuntime { UseNative = !db.VectorProvider.Equals("JsonFallback", StringComparison.OrdinalIgnoreCase) });
+        services.AddSingleton(sp => new SchemaInitializer(db, profile.EmbeddingDimensions, sp.GetRequiredService<VectorRuntime>(), sp.GetRequiredService<ILogger<SchemaInitializer>>()));
+        services.AddSingleton<IVectorStore>(sp => new AdaptiveVectorStore(sp.GetRequiredService<SqlDb>(), profile.EmbeddingDimensions, sp.GetRequiredService<VectorRuntime>()));
 
         if (profile.Provider.Equals("Stub", StringComparison.OrdinalIgnoreCase))
         {
@@ -70,7 +68,7 @@ public static class Composition
 
 /// <summary>Startup self-check: rejects mixed configurations and probes the database, vector support, storage and models.</summary>
 public sealed class SelfCheck(DeploymentOptions deployment, DatabaseOptions db, StorageOptions storage, ModelProfile profile, SelfCheckOptions options,
-    SqlDb sql, ILlmClient llm, IEmbeddingClient embeddings, ILogger<SelfCheck> log)
+    SqlDb sql, VectorRuntime vector, ILlmClient llm, IEmbeddingClient embeddings, ILogger<SelfCheck> log)
 {
     public async Task<IReadOnlyList<CheckResult>> RunAsync(CancellationToken ct = default)
     {
@@ -93,17 +91,9 @@ public sealed class SelfCheck(DeploymentOptions deployment, DatabaseOptions db, 
         {
             await using var c = await sql.OpenAsync(ct);
             Add("Database", true, "Connected.");
-            if (db.VectorProvider.Equals("Native", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    await using var cmd = c.CreateCommand();
-                    cmd.CommandText = "SELECT VECTOR_DISTANCE('cosine', CAST('[0.1,0.2]' AS VECTOR(2)), CAST('[0.2,0.1]' AS VECTOR(2)))";
-                    await cmd.ExecuteScalarAsync(ct);
-                    Add("Vector support", true, "Native VECTOR type available.");
-                }
-                catch (SqlException e) { Add("Vector support", false, "Native VECTOR type not available (needs SQL Server 2025 / Azure SQL): " + e.Message); }
-            }
+            // The schema step already probed the server. Report the effective mode; the JSON fallback is development only.
+            if (vector.UseNative) Add("Vector support", true, "Native VECTOR type available.");
+            else Add("Vector support", deployment.Mode != DeploymentMode.Azure, "JSON fallback in use (development only): " + vector.Reason);
         }
         catch (Exception e) { Add("Database", false, e.Message); }
 
