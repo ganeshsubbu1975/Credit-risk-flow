@@ -172,7 +172,7 @@ function Ask({ c }: { c: LoanCase }) {
       {!ready ? <div className="empty">The document is still being loaded into the vector database.</div> : (
         <>
           <div className="note" style={{ marginBottom: 12 }}>
-            This panel only reports what the loaded document says, with page citations. It cannot answer general questions, discuss other companies, or reveal scores and decisions.
+            This panel only reports what the loaded document says, with page citations. Ask for the "analyst commentary" to see the AI rationale. It cannot answer general questions, discuss other companies, or reveal scores and decisions.
           </div>
           <div className="chips">{SUGGESTIONS.map((s) => <button key={s} className="chip-btn" onClick={() => send(s)}>{s}</button>)}</div>
           <div className="chat" aria-live="polite">
@@ -183,7 +183,7 @@ function Ask({ c }: { c: LoanCase }) {
                 <div className={"bubble a" + (m.refused ? " refused" : "")}>
                   {m.refused && m.reason && <div style={{ marginBottom: 4 }}><span className="pill gold">{REFUSALS[m.reason].label}</span></div>}
                   {m.answer}
-                  {m.citations.map((ct) => <span className="cite" key={ct.chunkId}><b>Page {ct.page}</b> · {ct.excerpt}</span>)}
+                  {m.citations.map((ct) => <span className="cite" key={ct.chunkId}><b>{ct.page > 0 ? `Page ${ct.page}` : "Analyst commentary"}</b>{ct.page > 0 && <> · {ct.excerpt}</>}</span>)}
                 </div>
               </div>
             ))}

@@ -65,8 +65,9 @@ public sealed class OpenAiCompatibleClient : ILlmClient, IEmbeddingClient
         var json = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
         {
-            _log.LogError("Model call failed for {Role}: {Status}", role, (int)resp.StatusCode);
-            throw new HttpRequestException($"Model endpoint returned {(int)resp.StatusCode} for role {role}.");
+            var detail = json.Length > 300 ? json[..300] : json;
+            _log.LogError("Model call failed for {Role} ({Model}): {Status} {Detail}", role, model, (int)resp.StatusCode, detail);
+            throw new HttpRequestException($"Model endpoint returned {(int)resp.StatusCode} for role {role}: {detail}");
         }
         using var doc = JsonDocument.Parse(json);
         var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
@@ -82,7 +83,11 @@ public sealed class OpenAiCompatibleClient : ILlmClient, IEmbeddingClient
         {
             using var req = await BuildAsync("embeddings", new { model = _p.EmbeddingModel, input = batch }, ct);
             using var resp = await _http.SendAsync(req, ct);
-            if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"Embedding endpoint returned {(int)resp.StatusCode}.");
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                throw new HttpRequestException($"Embedding endpoint returned {(int)resp.StatusCode}: {(body.Length > 300 ? body[..300] : body)}");
+            }
             using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
             foreach (var item in doc.RootElement.GetProperty("data").EnumerateArray().OrderBy(d => d.GetProperty("index").GetInt32()))
                 all.Add(item.GetProperty("embedding").EnumerateArray().Select(x => x.GetSingle()).ToArray());

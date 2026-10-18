@@ -28,11 +28,16 @@ public static class Composition
         services.AddSingleton(deployment).AddSingleton(db).AddSingleton(storage).AddSingleton(models).AddSingleton(workflow)
                 .AddSingleton(qa).AddSingleton(selfCheck).AddSingleton(profile);
 
-        // Platform adapters, selected by Deployment:Mode (PRD FR-11). The Azure document store and Document Intelligence adapters are a listed task.
+        // Platform adapters, selected by Deployment:Mode (PRD FR-11). Azure uses Blob Storage; the Document Intelligence adapter is still a listed task.
         services.AddSingleton<SqlDb>();
         services.AddSingleton<ICaseRepository, SqlCaseRepository>();
         services.AddSingleton<IPdfReader, PdfPigReader>();
-        services.AddSingleton<IDocumentStore>(_ => new FileDocumentStore(storage.ResolvedFolder));
+        if (storage.UseBlob(deployment.Mode))
+        {
+            services.AddSingleton(_ => new BlobDocumentStore(storage.BlobAccountUrl, storage.BlobContainer));
+            services.AddSingleton<IDocumentStore>(sp => sp.GetRequiredService<BlobDocumentStore>());
+        }
+        else services.AddSingleton<IDocumentStore>(_ => new FileDocumentStore(storage.ResolvedFolder));
         services.AddSingleton(new VectorRuntime { UseNative = !db.VectorProvider.Equals("JsonFallback", StringComparison.OrdinalIgnoreCase) });
         services.AddSingleton(sp => new SchemaInitializer(db, profile.EmbeddingDimensions, sp.GetRequiredService<VectorRuntime>(), sp.GetRequiredService<ILogger<SchemaInitializer>>()));
         services.AddSingleton<IVectorStore>(sp => new AdaptiveVectorStore(sp.GetRequiredService<SqlDb>(), profile.EmbeddingDimensions, sp.GetRequiredService<VectorRuntime>()));
@@ -47,7 +52,10 @@ public static class Composition
             services.AddSingleton(sp => new OpenAiCompatibleClient(sp.GetRequiredService<IHttpClientFactory>().CreateClient(), profile,
                 sp.GetRequiredService<ILogger<OpenAiCompatibleClient>>()));
             services.AddSingleton<ILlmClient>(sp => sp.GetRequiredService<OpenAiCompatibleClient>());
-            services.AddSingleton<IEmbeddingClient>(sp => sp.GetRequiredService<OpenAiCompatibleClient>());
+            if (profile.EmbeddingProvider.Equals("Stub", StringComparison.OrdinalIgnoreCase))
+                services.AddSingleton<IEmbeddingClient>(_ => new StubEmbeddingClient(profile.EmbeddingDimensions));
+            else
+                services.AddSingleton<IEmbeddingClient>(sp => sp.GetRequiredService<OpenAiCompatibleClient>());
         }
         services.AddHttpClient();
 
@@ -68,7 +76,7 @@ public static class Composition
 
 /// <summary>Startup self-check: rejects mixed configurations and probes the database, vector support, storage and models.</summary>
 public sealed class SelfCheck(DeploymentOptions deployment, DatabaseOptions db, StorageOptions storage, ModelProfile profile, SelfCheckOptions options,
-    SqlDb sql, VectorRuntime vector, ILlmClient llm, IEmbeddingClient embeddings, ILogger<SelfCheck> log)
+    SqlDb sql, VectorRuntime vector, ILlmClient llm, IEmbeddingClient embeddings, ILogger<SelfCheck> log, BlobDocumentStore? blobs = null)
 {
     public async Task<IReadOnlyList<CheckResult>> RunAsync(CancellationToken ct = default)
     {
@@ -99,11 +107,20 @@ public sealed class SelfCheck(DeploymentOptions deployment, DatabaseOptions db, 
 
         try
         {
-            Directory.CreateDirectory(storage.ResolvedFolder);
-            var probe = Path.Combine(storage.ResolvedFolder, ".write-test");
-            await File.WriteAllTextAsync(probe, "ok", ct);
-            File.Delete(probe);
-            Add("Document store", true, "Writable.");
+            if (storage.UseBlob(deployment.Mode))
+            {
+                if (string.IsNullOrWhiteSpace(storage.BlobAccountUrl)) throw new InvalidOperationException("Storage:BlobAccountUrl is not set.");
+                await blobs!.ProbeAsync(ct);
+                Add("Document store", true, $"Blob container '{storage.BlobContainer}' writable.");
+            }
+            else
+            {
+                Directory.CreateDirectory(storage.ResolvedFolder);
+                var probe = Path.Combine(storage.ResolvedFolder, ".write-test");
+                await File.WriteAllTextAsync(probe, "ok", ct);
+                File.Delete(probe);
+                Add("Document store", true, "Writable.");
+            }
         }
         catch (Exception e) { Add("Document store", false, e.Message); }
 

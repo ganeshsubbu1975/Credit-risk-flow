@@ -31,6 +31,7 @@ public sealed class InMemoryRepo : ICaseRepository
     public Task<PolicyParameters> GetActivePolicyAsync(CancellationToken ct = default) => Task.FromResult(PolicyParameters.Default);
     public Task<bool> TryLockAsync(Guid id, TimeSpan stale, CancellationToken ct = default) => Task.FromResult(_locks.Add(id));
     public Task UnlockAsync(Guid id, CancellationToken ct = default) { _locks.Remove(id); return Task.CompletedTask; }
+    public Task DeleteCaseAsync(Guid id, CancellationToken ct = default) { States.Remove(id); QaLog.RemoveAll(q => q.CaseId == id); return Task.CompletedTask; }
 }
 
 public sealed class InMemoryVectors : IVectorStore

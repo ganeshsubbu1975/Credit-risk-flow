@@ -194,4 +194,15 @@ public sealed class SqlCaseRepository(SqlDb db) : ICaseRepository
         c.Parameters.AddWithValue("@id", caseId);
         await c.ExecuteNonQueryAsync(ct);
     }
+
+    public async Task DeleteCaseAsync(Guid caseId, CancellationToken ct = default)
+    {
+        await using var conn = await db.OpenAsync(ct);
+        await using var c = conn.CreateCommand();
+        c.CommandText = @"DELETE FROM qa_log WHERE case_id=@id;
+                          DELETE FROM workflow_checkpoint WHERE case_id=@id;
+                          DELETE FROM cases WHERE case_id=@id;";
+        c.Parameters.AddWithValue("@id", caseId);
+        await c.ExecuteNonQueryAsync(ct);
+    }
 }

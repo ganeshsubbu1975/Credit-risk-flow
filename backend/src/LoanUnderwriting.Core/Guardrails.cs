@@ -17,12 +17,13 @@ public static class InputGuard
         @"risk\s*score|recommend|should (we|i) (approve|lend|deny|reject)|approve (this|the) (loan|case|application)|(deny|reject) (this|the) (loan|case|application)|decision model|credit\s*worth|override|compliance flag|fraud|\bAML\b|\bKYC\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    public static GuardResult Check(string? question)
+    /// <param name="allowDecisionWords">True for questions routed to the stored analyst commentary, which may use words such as "recommend".</param>
+    public static GuardResult Check(string? question, bool allowDecisionWords = false)
     {
         if (string.IsNullOrWhiteSpace(question) || question.Trim().Length < 3 || question.Length > MaxQuestionLength)
             return new(false, RefusalReason.Blocked);
         if (Injection.IsMatch(question)) return new(false, RefusalReason.Injection);
-        if (DecisionIntegrity.IsMatch(question)) return new(false, RefusalReason.Blocked);
+        if (!allowDecisionWords && DecisionIntegrity.IsMatch(question)) return new(false, RefusalReason.Blocked);
         return new(true);
     }
 }

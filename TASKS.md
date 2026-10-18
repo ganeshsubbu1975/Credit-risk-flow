@@ -65,7 +65,7 @@ Test evidence: 59 unit and pipeline tests pass; 3 SQL integration tests pass aga
 | T-28 | Roles: RiskOps, Underwriter, Auditor; Dev header auth and JWT bearer auth | FR-1 | Dev mode verified. JWT mode written, not verified against an identity provider |
 | T-29 | SignalR hub and notifier | FR-8 | Done, not verified. The React app polls instead |
 | T-30 | Replace the custom runner with Microsoft Agent Framework workflows | TDD 8.2 | Open (blocked on confirming its checkpoint and request-port features) |
-| T-31 | Azure: Bicep, Blob store adapter, Document Intelligence adapter, App Service deploy | FR-11 | Open. Azure model endpoint is supported by config only |
+| T-31 | Azure: Bicep, Blob store adapter, Document Intelligence adapter, App Service deploy | FR-11 | Partly done: Bicep (deploy/azure), BlobDocumentStore and deploy script exist, untested on a live subscription. Open: Document Intelligence adapter, SPA Entra sign-in (MSAL) |
 | T-32 | Policy update endpoint and approval workflow for the Policy Owner | FR-5 | Open (read endpoint exists) |
 | T-33 | OpenTelemetry traces and metrics | NFR | Open |
 | T-34 | Hash-chained audit events (tamper evidence) | TDD 14 | Open (decision pending) |

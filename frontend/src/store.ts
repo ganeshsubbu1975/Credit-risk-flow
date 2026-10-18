@@ -96,6 +96,20 @@ export async function askQuestion(id: string, question: string): Promise<void> {
   await refreshCases();
 }
 
+/** Underwriter only. Returns how many cases were removed and how many were skipped because they were still processing. */
+export async function deleteAllDocuments(): Promise<{ deleted: number; skipped: number }> {
+  if (state.user.role !== "Underwriter") throw new Error("Only the Underwriter role can delete documents.");
+  if (!REAL) {
+    const keep = state.cases.filter((c) => c.status === "Processing");
+    const deleted = state.cases.length - keep.length;
+    set({ cases: keep });
+    return { deleted, skipped: keep.length };
+  }
+  const r = await api.deleteAllCases(state.user);
+  await refreshCases();
+  return r;
+}
+
 export async function downloadRecord(id: string, view: "applicant" | "internal") {
   const data = await api.fetchRecord(state.user, id, view);
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));

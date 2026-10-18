@@ -23,7 +23,13 @@ public sealed class StorageOptions
 {
     public string DocumentFolder { get; set; } = "data/documents";
     public int MaxUploadMb { get; set; } = 20;
+    /// <summary>File = local folder or file share (on-prem). Blob = Azure Blob Storage. Empty = File for OnPrem, Blob for Azure.</summary>
+    public string Provider { get; set; } = "";
+    /// <summary>Blob endpoint, for example https://myaccount.blob.core.windows.net. Accessed with the app's managed identity (DefaultAzureCredential); no keys.</summary>
+    public string BlobAccountUrl { get; set; } = "";
+    public string BlobContainer { get; set; } = "documents";
     /// <summary>Relative folders resolve against the application folder (a Windows Service starts in System32). Use an absolute path in production.</summary>
+    public bool UseBlob(DeploymentMode mode) => Provider.Equals("Blob", StringComparison.OrdinalIgnoreCase) || (Provider.Length == 0 && mode == DeploymentMode.Azure);
     public string ResolvedFolder => Path.IsPathRooted(DocumentFolder) ? DocumentFolder : Path.Combine(AppContext.BaseDirectory, DocumentFolder);
 }
 
@@ -39,6 +45,8 @@ public sealed class ModelProfile
     public string AzureScope { get; set; } = "https://cognitiveservices.azure.com/.default";
     public int TimeoutSeconds { get; set; } = 120;
     public Dictionary<string, string> Models { get; set; } = new();
+    /// <summary>Stub = offline test-double embeddings (development only; keyword-based, not semantic). Empty = follow Provider.</summary>
+    public string EmbeddingProvider { get; set; } = "";
     public string EmbeddingModel { get; set; } = "";
     public int EmbeddingDimensions { get; set; } = 1536;
 }

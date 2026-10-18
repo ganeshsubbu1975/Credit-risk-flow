@@ -175,6 +175,25 @@ api.MapGet("/cases/{id:guid}/qa", async (Guid id, ICaseRepository repo, Cancella
 api.MapGet("/cases/{id:guid}/audit", async (Guid id, ICaseRepository repo, CancellationToken ct) => Results.Ok(await repo.GetAuditAsync(id, ct)))
    .RequireAuthorization(p => p.RequireRole(Roles.Underwriter, Roles.Auditor));
 
+// Settings > "Delete all loaded documents". Cases still processing are skipped so a running workflow is not pulled out from under itself.
+api.MapDelete("/cases", async (ClaimsPrincipal user, ICaseRepository repo, IDocumentStore store, IVectorStore vectors, CancellationToken ct) =>
+{
+    var deleted = 0;
+    var skipped = 0;
+    foreach (var summary in await repo.ListAsync(ct))
+    {
+        var s = await repo.LoadAsync(summary.CaseId, ct);
+        if (s is null) continue;
+        if (s.Status == CaseStatus.Processing) { skipped++; continue; }
+        await store.DeleteAsync(s.Document, ct);
+        await vectors.DeleteCaseAsync(s.CaseId, ct);
+        await repo.DeleteCaseAsync(s.CaseId, ct);
+        deleted++;
+    }
+    await repo.AppendAuditAsync(Guid.Empty, new AuditEvent(DateTimeOffset.UtcNow, user.DisplayName(), "Delete documents", $"Deleted {deleted} case(s) and their documents; {skipped} still processing were skipped"), ct);
+    return Results.Ok(new { deleted, skipped });
+}).RequireAuthorization(p => p.RequireRole(Roles.Underwriter));
+
 api.MapGet("/policy", async (ICaseRepository repo, CancellationToken ct) => Results.Ok(await repo.GetActivePolicyAsync(ct)))
    .RequireAuthorization(p => p.RequireRole(all));
 

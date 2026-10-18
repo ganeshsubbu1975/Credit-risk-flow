@@ -1,4 +1,5 @@
-import { useStore } from "../store";
+import { useState } from "react";
+import { useStore, deleteAllDocuments } from "../store";
 import { Topbar } from "../components/Layout";
 import { fmtDate } from "../components/bits";
 import { POLICY, DECISION_MODEL_VERSION } from "../logic";
@@ -25,9 +26,31 @@ export function AuditLog() {
 }
 
 export function Settings() {
+  const { cases, user } = useStore();
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const wipe = async () => {
+    if (!window.confirm(`Permanently delete all ${cases.length} loaded document(s) and their cases? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      const r = await deleteAllDocuments();
+      setMsg(`Deleted ${r.deleted} document(s).${r.skipped ? ` ${r.skipped} still processing and were skipped.` : ""}`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Delete failed");
+    } finally { setBusy(false); }
+  };
   return (
     <>
       <Topbar title="Settings" />
+      {user.role === "Underwriter" && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-head"><h3>Data management</h3></div>
+          <div className="kv"><span>Loaded documents</span><b>{cases.length}</b></div>
+          <div className="note" style={{ margin: "12px 0" }}>Deletes every loaded document together with its case, extracted text and Q&amp;A history. The audit log is kept.</div>
+          <button className="btn" disabled={busy || cases.length === 0} onClick={wipe}>Delete all documents</button>
+          {msg && <div className="note" style={{ marginTop: 12 }}>{msg}</div>}
+        </div>
+      )}
       <div className="two">
         <div className="card">
           <div className="card-head"><h3>Deployment</h3></div>

@@ -71,6 +71,8 @@ public interface ICaseRepository
     Task<PolicyParameters> GetActivePolicyAsync(CancellationToken ct = default);
     Task<bool> TryLockAsync(Guid caseId, TimeSpan staleAfter, CancellationToken ct = default);
     Task UnlockAsync(Guid caseId, CancellationToken ct = default);
+    /// <summary>Removes the case, its checkpoints and its Q&amp;A log. The audit trail is retained.</summary>
+    Task DeleteCaseAsync(Guid caseId, CancellationToken ct = default);
 }
 
 public interface IProgressNotifier

@@ -78,12 +78,30 @@ public sealed class QaService(ILlmClient llm, IEmbeddingClient embeddings, IVect
         return result;
     }
 
+    public const string CommentaryChunkId = "commentary";
+
+    private static readonly System.Text.RegularExpressions.Regex CommentaryIntent = new(
+        @"analyst|commentar|\bcomments?\b|rationale|narrative|\bAI\b.{0,30}(recommend|assess|view|opinion|summary|reason|explain|say)|risk (summary|synthesis|assessment)|underwriting (note|summary)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private static QaResult Refuse(RefusalReason r) => new(true, r, RefusalText[r], Array.Empty<Citation>());
 
     private async Task<QaResult> RunAsync(Guid caseId, string entity, string question, List<string> chunkIds, CancellationToken ct)
     {
-        var guard = InputGuard.Check(question);
+        // Questions that name the analyst commentary are answered from the stored AI rationale, not from the PDF.
+        var wantsCommentary = CommentaryIntent.IsMatch(question);
+        var guard = InputGuard.Check(question, allowDecisionWords: wantsCommentary);
         if (!guard.Allowed) return Refuse(guard.Reason);
+        if (wantsCommentary)
+        {
+            var rationale = (await repo.LoadAsync(caseId, ct))?.LlmRecommendation?.Rationale;
+            if (!string.IsNullOrWhiteSpace(rationale))
+            {
+                var text = rationale.Trim();
+                chunkIds.Add(CommentaryChunkId);
+                return new QaResult(false, RefusalReason.None, text, new[] { new Citation(CommentaryChunkId, 0, "Analyst commentary") });
+            }
+            return Refuse(RefusalReason.NotFound);
+        }
 
         // G3: scope classifier. Fail closed: an unparsable reply counts as out of scope.
         var scope = await llm.CompleteAsync(ModelRole.ScopeCheck, QaPrompts.ScopeSystem, QaPrompts.ScopeUser(entity, question), ct);

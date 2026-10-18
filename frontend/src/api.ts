@@ -97,6 +97,10 @@ export async function postQuestion(user: User, id: string, question: string) {
   await call(user, `/api/cases/${id}/qa`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
 }
 
+export async function deleteAllCases(user: User) {
+  return call<{ deleted: number; skipped: number }>(user, "/api/cases", { method: "DELETE" });
+}
+
 export async function fetchRecord(user: User, id: string, view: "applicant" | "internal") {
   return call<unknown>(user, `/api/cases/${id}/record?view=${view}`);
 }
