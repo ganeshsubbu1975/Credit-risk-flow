@@ -44,9 +44,9 @@ flowchart LR
 
     subgraph MODELS["AI models (5 chat roles + 1 embedding)"]
         direction TB
-        Chat["Chat model, one per role:<br/>Extraction · Compliance · Risk<br/>ScopeCheck · QaAnswer<br/>Current config (OnPrem): Phi-4-mini-instruct<br/>via Foundry Local (:5273)<br/>Prerequisite: server running AND model loaded<br/>(foundry model load phi-4-mini)"]
-        Emb["Embedding model<br/>Current config: Stub (keyword, 1024 dims)<br/>Real: nomic-embed-text-v1.5 (768) / qwen3-embedding-0.6b"]
-        AzM["Azure mode: Azure OpenAI deployments<br/>Entra ID auth, 1536 dims"]
+        Chat["Chat model, one per role:<br/>Extraction · Compliance · Risk<br/>ScopeCheck · QaAnswer<br/>OnPrem: Phi-4-mini-instruct via Foundry Local (:5273)<br/>(server running AND model loaded:<br/>foundry model load phi-4-mini)"]
+        Emb["Embedding model<br/>OnPrem: Stub (keyword, 1024 dims)<br/>Real: nomic-embed-text-v1.5 (768) / qwen3-embedding-0.6b"]
+        AzM["Azure mode (active in appsettings.json):<br/>Ganeshfoundry Azure OpenAI /openai/v1<br/>gpt-5.4-mini x5 roles · text-embedding-3-small (1536 dims)<br/>Entra ID auth (az login locally, managed identity hosted)"]
     end
 
     subgraph EXT["Runtime stores"]
@@ -212,6 +212,57 @@ sequenceDiagram
 ```
 
 ## 6. Deployment modes
+
+`Deployment:Mode` picks one model profile at startup (`Models.Active(mode)`); the rest of the app is identical. The code default is
+`OnPrem`, but `appsettings.json` currently sets `Azure`. Switch with `Deployment:Mode` or `ASPNETCORE_Deployment__Mode=OnPrem`.
+
+```mermaid
+flowchart LR
+    SPA["React SPA (:5173)<br/>Vite proxy /api, /hubs"] --> API
+
+    subgraph HOST["Backend host: ASP.NET Core API (:5000)"]
+        direction TB
+        API["Api + WorkflowRunner + QaService"]
+        Mode{"Deployment:Mode"}
+        Cred["AzureCredentials.Create()<br/>IDENTITY_ENDPOINT / MSI_ENDPOINT set → ManagedIdentityCredential<br/>otherwise → AzureCliCredential (az login)"]
+        Client["OpenAiCompatibleClient<br/>chat + embeddings, 5 roles"]
+        API --> Client
+        Mode -. "selects profile" .-> Client
+        Client -. "AuthMode AzureAd only" .-> Cred
+    end
+
+    subgraph ONPREM["OnPrem profile"]
+        direction TB
+        FL["Foundry Local :5273/v1<br/>no auth<br/>Phi-4-mini-instruct-generic-gpu:5<br/>(all 5 chat roles)"]
+        StubE["Embeddings: Stub<br/>keyword, 1024 dims"]
+    end
+
+    subgraph AZURE["Azure profile (active in appsettings.json)"]
+        direction TB
+        Entra["Microsoft Entra ID<br/>token scope cognitiveservices.azure.com/.default"]
+        Foundry["Azure AI Foundry resource Ganeshfoundry<br/>ganeshfoundry.openai.azure.com/openai/v1<br/>RBAC: Cognitive Services OpenAI User"]
+        Dep["Deployments<br/>gpt-5.4-mini (Extraction · Compliance · Risk · ScopeCheck · QaAnswer)<br/>text-embedding-3-small, 1536 dims"]
+        Foundry --> Dep
+    end
+
+    subgraph STORES["Stores (both modes)"]
+        direction TB
+        SQL[("SQL Server<br/>cases · audit_event · document_chunks (VECTOR)<br/>Azure must be native VECTOR")]
+        Docs[["Documents<br/>File: data/documents (current setting)<br/>Blob: Azure Blob via managed identity (Azure default)"]]
+    end
+
+    Client == "Mode = OnPrem<br/>/chat/completions" ==> FL
+    Client -. "embeddings" .-> StubE
+    Client == "Mode = Azure<br/>Bearer token" ==> Foundry
+    Cred -- "get token" --> Entra
+    API --> SQL
+    API --> Docs
+```
+
+Local Azure run: `az login` as a user holding **Cognitive Services OpenAI User** on the Foundry resource (Owner/Contributor do not
+include the OpenAI data actions; a new assignment can take about 5 minutes to propagate). When hosted in Azure, the same code
+uses the app's managed identity instead. Using `AzureCliCredential` locally avoids the slow `DefaultAzureCredential` fall-through
+to the IMDS probe.
 
 | | OnPrem (default) | Azure |
 |---|---|---|
