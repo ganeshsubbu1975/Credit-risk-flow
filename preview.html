@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LoanFlow preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="frontend/src/styles.css" />
+<style>.view{display:none}.view.on{display:block}.shell{height:100vh}</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">◆</span>LoanFlow</div>
+    <div class="nav-label">Menu</div>
+    <button class="nav-item active" data-v="dash">⌂ Dashboard</button>
+    <button class="nav-item" data-v="case">▤ Case: Vantage Retail</button>
+    <button class="nav-item" data-v="ask">❝ Ask the document</button>
+    <button class="nav-item">⟲ Audit log</button>
+    <div class="nav-gap"></div>
+    <div class="nav-label">General</div>
+    <button class="nav-item">⚙ Settings</button>
+    <button class="nav-item">? Help center</button>
+    <div class="side-card"><span class="bolt">⚡</span><h4>Decision model DM-1.0.0</h4><p>Approve under 30, deny over 70, human review in between. The AI advises; the rules decide.</p></div>
+    <button class="logout">⇥ Log out</button>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="title">Welcome, Ethan 👋</h1>
+      <div class="tools">
+        <label class="search">⌕ <input placeholder="Search cases" /><span class="kbd">Ctrl K</span></label>
+        <select class="role-select"><option>Risk Ops</option><option>Underwriter</option><option>Auditor</option></select>
+        <button class="icon-btn alert">🔔</button>
+        <div class="toggle"><button class="on" id="light">☀</button><button id="dark">☾</button></div>
+        <div class="avatar">EC</div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section class="view on" id="dash">
+      <div class="kpis">
+        <div class="kpi" style="--c:var(--purple)"><div class="kpi-head">Total cases<span class="dots">...</span></div><div class="kpi-value">4<span class="chip">+12%</span></div><div class="kpi-foot">Increased from last month</div></div>
+        <div class="kpi" style="--c:var(--orange)"><div class="kpi-head">Auto-approved<span class="dots">...</span></div><div class="kpi-value">3<span class="chip">100%</span></div><div class="kpi-foot">Of decided cases</div></div>
+        <div class="kpi" style="--c:var(--cyan)"><div class="kpi-head">Awaiting review<span class="dots">...</span></div><div class="kpi-value">1</div><div class="kpi-foot">Needs an underwriter</div></div>
+        <div class="kpi" style="--c:var(--green)"><div class="kpi-head">Avg. processing time<span class="dots">...</span></div><div class="kpi-value">2m 14s<span class="chip">-96%</span></div><div class="kpi-foot">Down from 2 days</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-head"><h3>Cases by outcome</h3><div class="legend"><span><i style="background:var(--green)"></i>Approved</span><span><i style="background:var(--gold)"></i>Review / Deny</span><select class="select"><option>Daily</option></select></div></div>
+          <svg viewBox="0 0 640 230" width="100%">
+            <g stroke="var(--line)" stroke-dasharray="3 4"><line x1="38" x2="624" y1="30" y2="30"/><line x1="38" x2="624" y1="75" y2="75"/><line x1="38" x2="624" y1="120" y2="120"/><line x1="38" x2="624" y1="165" y2="165"/><line x1="38" x2="624" y1="204" y2="204"/></g>
+            <g fill="var(--muted)" font-size="10" text-anchor="middle"><text x="38" y="224">Mon</text><text x="136" y="224">Tue</text><text x="233" y="224">Wed</text><text x="331" y="224">Thu</text><text x="429" y="224">Fri</text><text x="526" y="224">Sat</text><text x="624" y="224">Sun</text></g>
+            <path d="M38 120 C87 120,87 90,136 90 C185 90,185 105,233 105 C282 105,282 62,331 62 C380 62,380 76,429 76 C478 76,478 140,526 140 C575 140,575 112,624 112" fill="none" stroke="var(--green)" stroke-width="2.5"/>
+            <path d="M38 175 C87 175,87 168,136 168 C185 168,185 150,233 150 C282 150,282 158,331 158 C380 158,380 146,429 146 C478 146,478 180,526 180 C575 180,575 172,624 172" fill="none" stroke="var(--gold)" stroke-width="2.5"/>
+            <line x1="331" x2="331" y1="18" y2="204" stroke="var(--purple)" stroke-dasharray="3 3"/>
+            <circle cx="331" cy="62" r="4.5" fill="var(--panel)" stroke="var(--green)" stroke-width="2"/><circle cx="331" cy="158" r="4.5" fill="var(--panel)" stroke="var(--gold)" stroke-width="2"/>
+            <g transform="translate(341,24)"><rect width="118" height="52" rx="8" fill="var(--panel)" stroke="var(--line)"/><circle cx="12" cy="18" r="3.5" fill="var(--green)"/><text x="22" y="22" font-size="11" fill="var(--muted)">Approved</text><text x="108" y="22" font-size="11" text-anchor="end" font-weight="600" fill="var(--text)">14</text><circle cx="12" cy="38" r="3.5" fill="var(--gold)"/><text x="22" y="42" font-size="11" fill="var(--muted)">Review/Deny</text><text x="108" y="42" font-size="11" text-anchor="end" font-weight="600" fill="var(--text)">5</text></g>
+          </svg>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Pending review</h3><button class="link">See all</button></div>
+          <div class="stack"><div class="back"></div><div class="front"><div style="font-size:12px;color:var(--muted)">Next in queue</div><div style="font-weight:600;font-size:17px;margin:6px 0">Vantage Retail</div><div style="font-size:12px;color:var(--muted)">LN-2026-0004 · risk 44</div><div style="margin-top:12px"><span class="pill gold">Awaiting review</span></div></div></div>
+          <button class="btn" onclick="show('case')">＋ Open case</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-head"><h3>Latest cases</h3><button class="link">See all</button></div>
+          <table><thead><tr><th>Entity</th><th>Submitted</th><th>Risk score</th><th>Status</th></tr></thead><tbody>
+            <tr class="click" onclick="show('case')"><td><div class="who"><span class="dot-av" style="background:#c99700">VR</span>Vantage Retail</div></td><td>18 Oct, 09:12</td><td>44</td><td><span class="pill gold">Awaiting review</span></td></tr>
+            <tr class="click"><td><div class="who"><span class="dot-av" style="background:#1fcf8a">SH</span>Summit Healthcare</div></td><td>18 Oct, 07:49</td><td>6.3</td><td><span class="pill green">Approved</span></td></tr>
+            <tr class="click"><td><div class="who"><span class="dot-av" style="background:#4cc9f0">NL</span>Nexus Logistics</div></td><td>18 Oct, 05:04</td><td>21.7</td><td><span class="pill green">Approved</span></td></tr>
+            <tr class="click"><td><div class="who"><span class="dot-av" style="background:#6d4aff">AM</span>Apex Mfg Inc.</div></td><td>18 Oct, 02:14</td><td>9.0</td><td><span class="pill green">Approved</span></td></tr>
+          </tbody></table>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Decision mix</h3><b>4</b></div>
+          <div class="gauge-wrap"><svg viewBox="0 0 300 170" width="100%"><path d="M 40 140 A 110 110 0 0 1 202 42 L 190 70 A 76 76 0 0 0 78 140 Z" fill="var(--green)"/><path d="M 208 45 A 110 110 0 0 1 258 120 L 226 124 A 76 76 0 0 0 196 72 Z" fill="var(--purple)"/><path d="M 260 128 A 110 110 0 0 1 260 152 L 228 146 A 76 76 0 0 0 228 134 Z" fill="var(--gold)"/><text x="150" y="130" text-anchor="middle" font-size="26" font-weight="600" fill="var(--text)">4</text><text x="150" y="152" text-anchor="middle" font-size="11" fill="var(--muted)">Cases</text></svg></div>
+          <div class="legend" style="justify-content:center"><span><i style="background:var(--green)"></i>Approved 3</span><span><i style="background:var(--purple)"></i>Review 1</span><span><i style="background:var(--gold)"></i>Denied 0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASE -->
+    <section class="view" id="case">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap"><span class="pill gold">Awaiting review</span><span style="color:var(--muted)">Vantage_Retail_FY2024-25.pdf · submitted 18 Oct, 09:12 by Ethan Cole</span><span class="pill purple">Risk score 44</span></div>
+      <div class="tabs"><button class="tab on">Progress</button><button class="tab">Analysis</button><button class="tab">Underwriter review</button><button class="tab" onclick="show('ask')">Ask the document</button><button class="tab">Decision record</button><button class="tab">Audit</button></div>
+      <div class="two">
+        <div class="card">
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Upload</span><span class="pill grey">done</span></div><div class="step-meta">Vantage_Retail_FY2024-25.pdf accepted (digital PDF)</div></div></div>
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Ingest to vector DB</span><span class="pill grey">done</span></div><div class="step-meta">11 chunks embedded and stored for this case · 1.4s</div></div></div>
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Node 1: Extraction &amp; verification</span><span class="pill grey">done</span></div><div class="step-meta">9 metrics extracted; reconciled; min confidence 0.93 · 1.3s · 2,150 tokens</div></div></div>
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Node 2: Fraud &amp; compliance</span><span class="pill grey">done</span></div><div class="step-meta">1 flag raised · 1.3s · 2,500 tokens</div></div></div>
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Node 3: Risk synthesis</span><span class="pill grey">done</span></div><div class="step-meta">Recommendation: Escalate · 1.5s · 2,850 tokens</div></div></div>
+          <div class="step"><div class="step-ico done">✓</div><div class="step-body"><div class="step-title"><span>Decision model</span><span class="pill grey">done</span></div><div class="step-meta">R6: Escalate. Risk score 44 is between 30 and 70; human review required.</div></div></div>
+          <div class="step"><div class="step-ico running">9</div><div class="step-body"><div class="step-title"><span>Human review</span><span class="pill grey">running</span></div><div class="step-meta">Waiting for an underwriter</div></div></div>
+        </div>
+        <div style="display:grid;gap:16px;align-content:start">
+          <div class="card"><div class="card-head"><h3>EBITDA and leverage</h3></div>
+            <div class="kv"><span>EBITDA (with officer add-back)</span><b>$185,000</b></div><div class="kv"><span>EBITDA excluding officer comp</span><b>$95,000</b></div><div class="kv"><span>Debt / EBITDA</span><b>5.00x</b></div><div class="kv"><span>EBITDA margin</span><b>10.0%</b></div><div class="kv"><span>EBITDA / interest</span><b>4.1x</b></div></div>
+          <div class="card"><div class="card-head"><h3>Your decision</h3></div>
+            <div class="note warn" style="margin-bottom:12px">Switch the role to Underwriter to act on this case.</div>
+            <textarea class="field" rows="3" placeholder="Reason (required for an override)" disabled></textarea>
+            <div style="display:flex;gap:10px;margin-top:12px"><button class="btn green" disabled>Approve</button><button class="btn red" disabled>Deny</button><button class="btn ghost" disabled>Override AI</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASK -->
+    <section class="view" id="ask">
+      <div class="card">
+        <div class="card-head"><h3>Ask the document</h3><span class="badge-mode">Answers come only from Vantage_Retail_FY2024-25.pdf</span></div>
+        <div class="note" style="margin-bottom:12px">This panel only reports what the loaded document says, with page citations. It cannot answer general questions, discuss other companies, or reveal scores and decisions.</div>
+        <div class="chips"><button class="chip-btn">What is the reported net revenue?</button><button class="chip-btn">What is the total short-term debt?</button><button class="chip-btn">How much interest expense is reported?</button><button class="chip-btn">What is the officer compensation?</button></div>
+        <div class="chat">
+          <div class="bubble q">What is the reported net revenue?</div>
+          <div class="bubble a">Net revenue (Line 1c): $1,850,000.<span class="cite"><b>Page 1</b> · Net revenue (Line 1c): $1,850,000.</span></div>
+          <div class="bubble q">What is the capital of France?</div>
+          <div class="bubble a refused"><div style="margin-bottom:4px"><span class="pill gold">Out of scope</span></div>That question isn't about the loaded document, so I can't answer it.</div>
+          <div class="bubble q">What is the risk score?</div>
+          <div class="bubble a refused"><div style="margin-bottom:4px"><span class="pill gold">Blocked</span></div>I only report what the document says. I can't discuss scores, recommendations or decisions here.</div>
+          <div class="bubble q">What is the total short-term debt?</div>
+          <div class="bubble a">Short-term debt, notes payable current (Balance Sheet Line 17d): $275,000.<span class="cite"><b>Page 2</b> · Short-term debt, notes payable current (Balance Sheet Line 17d): $275,000.</span></div>
+        </div>
+        <form class="ask" onsubmit="return false"><input class="field" placeholder="Ask about this document..." /><button class="btn primary">➤ Ask</button></form>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const titles = { dash: "Welcome, Ethan 👋", case: "Vantage Retail <span style='color:var(--muted);font-weight:400;font-size:16px'>LN-2026-0004</span>", ask: "Vantage Retail <span style='color:var(--muted);font-weight:400;font-size:16px'>LN-2026-0004</span>" };
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));document.getElementById('title').innerHTML=titles[v];document.querySelectorAll('.nav-item[data-v]').forEach(b=>b.classList.toggle('active',b.dataset.v===v));}
+document.querySelectorAll('.nav-item[data-v]').forEach(b=>b.onclick=()=>show(b.dataset.v));
+const set=t=>{document.documentElement.dataset.theme=t;document.getElementById('light').className=t==='light'?'on':'';document.getElementById('dark').className=t==='dark'?'on':'';};
+document.getElementById('light').onclick=()=>set('light');document.getElementById('dark').onclick=()=>set('dark');
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+bin/
+obj/
+node_modules/
+dist/
+.env.local
+backend/src/LoanUnderwriting.Api/data/
+backend/src/LoanUnderwriting.Api/appsettings.Production.json
+*.user
+~$*
+~WRL*.tmp
