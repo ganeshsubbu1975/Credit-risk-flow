@@ -49,6 +49,30 @@ public sealed class OpenAiCompatibleClient : ILlmClient, IEmbeddingClient
         return req;
     }
 
+    private const int MaxRetries = 5;
+
+    /// <summary>Posts the body, retrying 429/503 with Retry-After (or exponential backoff) since the request message can't be reused.</summary>
+    private async Task<(HttpResponseMessage Resp, string Body)> SendWithRetryAsync(string path, object body, CancellationToken ct)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            using var req = await BuildAsync(path, body, ct);
+            var resp = await _http.SendAsync(req, ct);
+            var text = await resp.Content.ReadAsStringAsync(ct);
+            var status = (int)resp.StatusCode;
+            if ((status != 429 && status != 503) || attempt >= MaxRetries) return (resp, text);
+
+            var delay = resp.Headers.RetryAfter?.Delta
+                        ?? (resp.Headers.RetryAfter?.Date is { } d ? d - DateTimeOffset.UtcNow : (TimeSpan?)null)
+                        ?? TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
+            if (delay < TimeSpan.FromSeconds(1)) delay = TimeSpan.FromSeconds(1);
+            if (delay > TimeSpan.FromSeconds(60)) delay = TimeSpan.FromSeconds(60);
+            _log.LogWarning("Model endpoint returned {Status}; retrying in {Delay}s (attempt {Attempt}/{Max})", status, delay.TotalSeconds, attempt + 1, MaxRetries);
+            resp.Dispose();
+            await Task.Delay(delay, ct);
+        }
+    }
+
     public async Task<LlmResponse> CompleteAsync(ModelRole role, string system, string user, CancellationToken ct = default)
     {
         if (!_p.Models.TryGetValue(role.ToString(), out var model) || string.IsNullOrWhiteSpace(model))
@@ -60,9 +84,8 @@ public sealed class OpenAiCompatibleClient : ILlmClient, IEmbeddingClient
             temperature = 0,
             messages = new object[] { new { role = "system", content = system }, new { role = "user", content = user } },
         };
-        using var req = await BuildAsync("chat/completions", body, ct);
-        using var resp = await _http.SendAsync(req, ct);
-        var json = await resp.Content.ReadAsStringAsync(ct);
+        var (resp, json) = await SendWithRetryAsync("chat/completions", body, ct);
+        using var _ = resp;
         if (!resp.IsSuccessStatusCode)
         {
             var detail = json.Length > 300 ? json[..300] : json;
